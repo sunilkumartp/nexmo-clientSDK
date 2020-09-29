@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    body {
+      font: 13px Helvetica, Arial;
+    }
+
+    #login,
+    #messages {
+      width: 80%;
+      height: 500px;
+    }
+
+    form input[type=text] {
+      font-size: 20px;
+      height: 35px;
+      padding: 0px;
+    }
+
+    button {
+      height: 35px;
+      background-color: blue;
+      color: white;
+      width: 75px;
+      position: relative;
+      font-size: 15px;
+    }
+
+    textarea {
+      width: 85%;
+      font-size: 20px;
+    }
+
+    #messageFeed {
+      font-size: 18px;
+      padding-bottom: 20px;
+      line-height: 22pt;
+    }
+
+    #status {
+      height: 35px;
+      font-size: 12px;
+      color: blue;
+    }
+
+    #send {
+      width: 85%;
+    }
+
+    #messages {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <form id="login">
+    <h1>Login</h1>
+    <input type="text" id="username" name="username" value="" class="textbox">
+    <button type="submit">Login</button>
+  </form>
+
+  <section id="messages">
+    <h1 id="sessionName"></h1>
+
+    <div id="loadSection">
+      <button id="loadMessages">
+        Load Previous Messages
+      </button>
+      &nbsp; &nbsp;<h3>Showing <span id="messagesCount"></span> starting at <span id="messageDate"></span></h3>
+    </div>
+
+    <div id="messageFeed"></div>
+
+    <div>
+      <textarea id="messageTextarea"></textarea>
+      <button id="send">Send</button>
+      <div id="status"></div>
+    </div>
+  </section>
+  
+   <script type='text/javascript'>
+   
+   loadMessagesButton.addEventListener('click', async (event) => {
+  // Get next page of events
+  let nextEvents = await listedEvents.getNext();
+  listMessages(nextEvents);
+});
+   
+   loginForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const userToken = authenticate(document.getElementById('username').value);
+  if (userToken) {
+    document.getElementById('messages').style.display = 'block';
+    document.getElementById('login').style.display = 'none';
+    run(userToken);
+  }
+});
+
+async function run(userToken){
+
+}
+
+// Update the UI to show which user we are
+document.getElementById('sessionName').innerHTML = conversation.me.user.name + "'s messages"
+
+// Load events that happened before the page loaded
+  let initialEvents = await conversation.getEvents({ event_type: "text", page_size: 10, order:"desc" });
+  listMessages(initialEvents);
+  
+  
+  // Any time there's a new text event, add it as a message
+  conversation.on('text', (sender, event) => {
+    const formattedMessage = formatMessage(sender, event, conversation.me);
+    messageFeed.innerHTML = messageFeed.innerHTML +  formattedMessage;
+    messagesCountSpan.textContent = `${messagesCount}`;
+  });
+  
+  // Listen for clicks on the submit button and send the existing text value
+sendButton.addEventListener('click', async () => {
+  await conversation.sendText(messageTextarea.value);
+  messageTextarea.value = '';
+});
+  
+  
+  messageTextarea.addEventListener('keypress', (event) => {
+  conversation.startTyping();
+});
+
+var timeout = null;
+messageTextarea.addEventListener('keyup', (event) => {
+  clearTimeout(timeout);
+  timeout = setTimeout(() => {
+    conversation.stopTyping();
+  }, 500);
+});
+
+
+conversation.on("text:typing:on", (data) => {
+  if (data.user.id !== data.conversation.me.user.id) {
+    status.innerHTML = data.user.name + " is typing...";
+  }
+});
+
+conversation.on("text:typing:off", (data) => {
+  status.innerHTML = "";
+});
+
+
+   </script>
+  <script src="./node_modules/nexmo-client/dist/nexmoClient.js"></script>
+  <script src="./node_modules/moment/moment.js"></script>
+  <script src="./chat.js"></script>
+
+</body>
+
+</html>
